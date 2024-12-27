@@ -3,7 +3,7 @@ import { fetchWalletEthBalance, fetchWalletTxs } from "../utils/alchemyApi";
 
 
 // Simulate fetching data from a blockchain or external API
-export const getSeedWalletData = async (seedWalletAddress: string): Promise<any> => {
+export const getSeedWalletData = async (seedWalletAddress: string): Promise<JsonOutput> => {
     try {
         // Example API call to fetch wallet data
         const result = await startCrawler(seedWalletAddress);
@@ -37,7 +37,7 @@ const fetchETHBalance = async (walletAddress: string): Promise<number> => {
     }
 }
 
-const startCrawler = async (seedWalletAddress: string) => {
+const startCrawler = async (seedWalletAddress: string):Promise<JsonOutput> => {
     // const mainWallet: string = "0x00a8ac72bd166067b629f6111ddfde7570ce482a";
 
     const mainWallet = seedWalletAddress;
@@ -59,21 +59,34 @@ const startCrawler = async (seedWalletAddress: string) => {
         nodes: []
     };
 
-    // Fetch balance and creation time for each "to" address
-    if (toAddresses)
-        for (const toAddress of toAddresses) {
-            const toAddressBalanceInUSD = await fetchETHBalance(toAddress);
+    if (toAddresses) {
+        await fetchBalancesAndUpdateNodes(toAddresses, jsonOutput);
+    }
 
-            // Push the toAddress info into the nodes array
+    console.log(jsonOutput, "jsonOutput");
+
+    return jsonOutput;
+   
+};
+
+const fetchBalancesAndUpdateNodes = async (toAddresses:string[], jsonOutput:JsonOutput) => {
+    // Create an array of promises
+    const balancePromises = toAddresses.slice(0,100).map(async (toAddress:any) => {
+        const toAddressBalanceInUSD = await fetchETHBalance(toAddress);
+        return { toAddress, toAddressBalanceInUSD };
+    });
+
+    // Use Promise.all to wait for all promises to resolve
+    const balances = await Promise.all(balancePromises);
+
+    // Iterate over the resolved balances and update the jsonOutput.nodes
+    balances.forEach(({ toAddress, toAddressBalanceInUSD }) => {
+        console.log(toAddress, typeof (toAddressBalanceInUSD), "toAddress:toAddressBalanceInUSD");
             jsonOutput.nodes.push({
                 address: toAddress,
                 balance: toAddressBalanceInUSD
             });
-        }
-    console.log("JSON data has been saved to wallet_data.json");
-
-    console.log(jsonOutput, "jsonOutput")
-    return jsonOutput;
+    });
+}
 
 
-};
