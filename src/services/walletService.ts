@@ -101,11 +101,13 @@ export const getWalletData = async (address: string, mainWalletAddress: string) 
             throw new Error("Failed to fetch transactions");
         }
 
+        console.log(transactions,"transactions")
+
         // Filter transactions where either `from` or `to` matches `mainWalletAddress`
         const filteredTransactions = transactions.filter((tx) => {
             return (
-                tx.from == mainWalletAddress ||
-                tx.to == mainWalletAddress
+                (tx.from)?.toLowerCase() == mainWalletAddress.toLowerCase() ||
+                (tx.to)?.toLowerCase() == mainWalletAddress.toLowerCase()
             );
         });
 
