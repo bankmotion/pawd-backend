@@ -20,7 +20,7 @@ const web3 = createAlchemyWeb3(`https://eth-mainnet.alchemyapi.io/v2/${APIKey.Al
 export const fetchWalletTxs = async (wallet: string) => {
     try {
         const transfers = await alchemy.core.getAssetTransfers({
-            fromAddress: wallet,
+            toAddress: wallet,
             excludeZeroValue: true,
             category: ["erc20", "external"] as AssetTransfersCategory[],
             withMetadata: true,

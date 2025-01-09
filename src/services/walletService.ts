@@ -1,18 +1,4 @@
-import { promises } from "dns";
-import { fetchWalletBalance, fetchWalletEthBalance, fetchWalletTxs, fetchAllWalletTxs } from "../utils/alchemyApi";
-
-
-// Simulate fetching data from a blockchain or external API
-export const getSeedWalletData = async (seedWalletAddress: string): Promise<JsonOutput> => {
-    try {
-        // Example API call to fetch wallet data
-        const result = await startCrawler(seedWalletAddress);
-        return result;
-    } catch (error) {
-        console.error('Error in getSeedWalletData:', error);
-        throw new Error('Failed to fetch seed wallet data');
-    }
-};
+import { fetchWalletBalance, fetchWalletEthBalance, fetchWalletTxs } from "../utils/alchemyApi";
 
 // Define a type for the node objects
 interface Node {
@@ -27,28 +13,41 @@ interface JsonOutput {
     nodes: Node[]; // An array of Node objects
 }
 
-const fetchETHBalance = async (walletAddress: string): Promise<number> => {
+// Simulate fetching data from a blockchain or external API
+export const getSeedWalletData = async (seedWalletAddress: string): Promise<{ walletTxs: any[] | null; jsonOutput: JsonOutput }> => {
     try {
-        const ethBalance = await fetchWalletEthBalance(walletAddress);
-        return ethBalance ? parseFloat(ethBalance) : 0;
+        // Example API call to fetch wallet data
+        const result = await startCrawler(seedWalletAddress);
+        return result;
     } catch (error) {
-        console.error("Error fetching balance:", error);
-        return 0;
+        console.error('Error in getSeedWalletData:', error);
+        throw new Error('Failed to fetch seed wallet data');
     }
-}
+};
 
-const startCrawler = async (seedWalletAddress: string): Promise<JsonOutput> => {
-    // const mainWallet: string = "0x00a8ac72bd166067b629f6111ddfde7570ce482a";
+export const getWalletData = async (address: string) => {
+    try {
+        const totalBalance = await fetchWalletBalance(address);
+        console.log(totalBalance, "totalBalance");
+
+        return totalBalance;
+    } catch (error) {
+        console.error("Error in getWalletData:", error);
+        throw new Error("Failed to fetch wallet data");
+    }
+};
+
+const startCrawler = async (seedWalletAddress: string): Promise<{ walletTxs: any[] | null; jsonOutput: JsonOutput }> => {
 
     const mainWallet = seedWalletAddress;
 
     // Fetch wallet transactions
     const walletTxs = await fetchWalletTxs(mainWallet);
-    console.log(walletTxs?.length, walletTxs![0], "walletTxs");
 
-    // Extract the "to" wallet addresses
-    const toAddresses = walletTxs?.map((tx: any) => tx.to).filter((address, index, self) => self.indexOf(address) === index);
-    console.log(toAddresses!.length, "To Wallet Addresses");
+    // Extract the "from" wallet addresses
+    const fromAddresses = walletTxs?.map((tx: any) => tx.from).filter((address, index, self) => self.indexOf(address) === index);
+
+    console.log(fromAddresses!.length, "To Wallet Addresses");
 
     const mainWalletETHBalance = await fetchETHBalance(mainWallet);
 
@@ -59,68 +58,45 @@ const startCrawler = async (seedWalletAddress: string): Promise<JsonOutput> => {
         nodes: []
     };
 
-    if (toAddresses) {
-        await fetchBalancesAndUpdateNodes(toAddresses, jsonOutput);
+    if (fromAddresses) {
+        await fetchBalancesAndUpdateNodes(fromAddresses, jsonOutput);
     }
 
     console.log(jsonOutput, "jsonOutput");
 
-    return jsonOutput;
+    return { walletTxs, jsonOutput };
 
 };
 
-const fetchBalancesAndUpdateNodes = async (toAddresses: string[], jsonOutput: JsonOutput) => {
+const fetchBalancesAndUpdateNodes = async (fromAddresses: string[], jsonOutput: JsonOutput) => {
     // Create an array of promises
-    const balancePromises = toAddresses.slice(0, 100).map(async (toAddress: any) => {
-        const toAddressBalanceInUSD = await fetchETHBalance(toAddress);
-        return { toAddress, toAddressBalanceInUSD };
+    const balancePromises = fromAddresses.slice(0, 100).map(async (fromAddress: any) => {
+        const fromAddressBalanceInUSD = await fetchETHBalance(fromAddress);
+        return { fromAddress, fromAddressBalanceInUSD };
     });
 
     // Use Promise.all to wait for all promises to resolve
     const balances = await Promise.all(balancePromises);
 
     // Iterate over the resolved balances and update the jsonOutput.nodes
-    balances.forEach(({ toAddress, toAddressBalanceInUSD }) => {
-        console.log(toAddress, typeof (toAddressBalanceInUSD), "toAddress:toAddressBalanceInUSD");
+    balances.forEach(({ fromAddress, fromAddressBalanceInUSD }) => {
+        console.log(fromAddress, typeof (fromAddressBalanceInUSD), "fromAddress:fromAddressBalanceInUSD");
         jsonOutput.nodes.push({
-            address: toAddress,
-            balance: toAddressBalanceInUSD
+            address: fromAddress,
+            balance: fromAddressBalanceInUSD
         });
     });
 }
 
-export const getWalletData = async (address: string, mainWalletAddress: string) => {
+const fetchETHBalance = async (walletAddress: string): Promise<number> => {
     try {
-        const totalBalance = await fetchWalletBalance(address);
-        console.log(totalBalance, "totalBalance");
-
-        // Fetch all transactions for the given wallet
-        const transactions = await fetchAllWalletTxs(address);
-
-        if (!transactions) {
-            throw new Error("Failed to fetch transactions");
-        }
-
-        console.log(transactions,"transactions")
-
-        // Filter transactions where either `from` or `to` matches `mainWalletAddress`
-        const filteredTransactions = transactions.filter((tx) => {
-            return (
-                (tx.from)?.toLowerCase() == mainWalletAddress.toLowerCase() ||
-                (tx.to)?.toLowerCase() == mainWalletAddress.toLowerCase()
-            );
-        });
-
-        console.log(filteredTransactions, "filteredTransactions")
-
-        return {
-            totalBalance,
-            transactions: filteredTransactions,
-        };
+        const ethBalance = await fetchWalletEthBalance(walletAddress);
+        return ethBalance ? parseFloat(ethBalance) : 0;
     } catch (error) {
-        console.error("Error in getWalletData:", error);
-        throw new Error("Failed to fetch wallet data");
+        console.error("Error fetching balance:", error);
+        return 0;
     }
-};
+}
+
 
 

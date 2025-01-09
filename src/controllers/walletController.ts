@@ -22,18 +22,19 @@ export const fetchSeedWalletData = async (req: Request, res: Response): Promise<
   }
 };
 
+// Fetch the balances of wallet
 export const fetchWalletData = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { address, mainWalletAddress } = req.body;
+    const { address} = req.body;
 
-    if (!address || !mainWalletAddress) {
-      res.status(400).json({ error: 'Address and mainWalletAddress are required.' });
+    if (!address) {
+      res.status(400).json({ error: 'Address is required.' });
       return;
     }
 
-    console.log(address, mainWalletAddress);
+    console.log(address);
 
-    const walletData = await getWalletData(address, mainWalletAddress);
+    const walletData = await getWalletData(address);
 
     res.json(walletData);
     return;
