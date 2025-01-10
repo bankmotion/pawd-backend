@@ -1,3 +1,4 @@
+import { isAddress } from '@ethersproject/address';
 import { fetchWalletBalance, fetchWalletEthBalance, fetchWalletTxs } from "../utils/alchemyApi";
 
 // Define a type for the node objects
@@ -70,7 +71,10 @@ const startCrawler = async (seedWalletAddress: string): Promise<{ walletTxs: any
 
 const fetchBalancesAndUpdateNodes = async (fromAddresses: string[], jsonOutput: JsonOutput) => {
     // Create an array of promises
-    const balancePromises = fromAddresses.slice(0, 100).map(async (fromAddress: any) => {
+
+    const validAddresses = fromAddresses.filter((fromAddress) => isAddress(fromAddress));
+
+    const balancePromises = validAddresses.slice(0, 100).map(async (fromAddress: any) => {
         const fromAddressBalanceInUSD = await fetchETHBalance(fromAddress);
         return { fromAddress, fromAddressBalanceInUSD };
     });

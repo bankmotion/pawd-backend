@@ -84,39 +84,116 @@ export const fetchWalletEthBalance = async (wallet: string) => {
     }
 }
 
-export const fetchWalletBalance = async (walletAddress: string): Promise<{
+// export const fetchWalletBalance = async (walletAddress: string): Promise<{
+//     nativeBalance: string;
+//     tokenBalances: { tokenAddress: string; tokenSymbol: string; balance: string }[];
+// }> => {
+//     try {
+//         const nativeBalanceInWei = await alchemy.core.getBalance(walletAddress);
+//         const nativeBalance = Number(web3.utils.fromWei(nativeBalanceInWei.toString(), 'ether')).toFixed(4); // Convert from Wei to ETH and format
+
+//         const tokenBalancesResponse = await alchemy.core.getTokenBalances(walletAddress);
+
+//         const tokenBalances = await Promise.all(
+//             tokenBalancesResponse.tokenBalances.map(async (token) => {
+//                 const metadata = await alchemy.core.getTokenMetadata(token.contractAddress);
+//                 return {
+//                     tokenAddress: token.contractAddress,
+//                     tokenSymbol: metadata.symbol || "UNKNOWN",
+//                     balance: (Number(token.tokenBalance) / 10 ** (metadata.decimals || 18)).toFixed(4), // Convert to human-readable format
+//                 };
+//             })
+//         );
+
+//         const filteredTokenBalances = tokenBalances.filter(
+//             (token) => Number(token.balance) > 0
+//         );
+
+//         return {
+//             nativeBalance,
+//             tokenBalances: filteredTokenBalances,
+//         };
+//     }
+//     catch (error) {
+//         console.error("Error fetching wallet balance:", error);
+//         throw new Error("Failed to fetch wallet balance.");
+//     }
+
+// }
+
+export const fetchWalletBalance = async (
+    walletAddress: string
+): Promise<{
     nativeBalance: string;
     tokenBalances: { tokenAddress: string; tokenSymbol: string; balance: string }[];
 }> => {
     try {
+        console.log("Fetching native balance for wallet address:", walletAddress);
+
+        // Step 1: Fetch native balance
         const nativeBalanceInWei = await alchemy.core.getBalance(walletAddress);
-        const nativeBalance = Number(web3.utils.fromWei(nativeBalanceInWei.toString(), 'ether')).toFixed(4); // Convert from Wei to ETH and format
+        console.log("Native balance (in Wei):", nativeBalanceInWei.toString());
 
+        const nativeBalance = Number(
+            web3.utils.fromWei(nativeBalanceInWei.toString(), 'ether')
+        ).toFixed(4);
+        console.log("Native balance (in ETH):", nativeBalance);
+
+        // Step 2: Fetch token balances
+        console.log("Fetching token balances for wallet address:", walletAddress);
         const tokenBalancesResponse = await alchemy.core.getTokenBalances(walletAddress);
+        console.log("Raw token balances response:", tokenBalancesResponse);
 
+        // Step 3: Process each token balance with error handling
         const tokenBalances = await Promise.all(
             tokenBalancesResponse.tokenBalances.map(async (token) => {
-                const metadata = await alchemy.core.getTokenMetadata(token.contractAddress);
-                return {
-                    tokenAddress: token.contractAddress,
-                    tokenSymbol: metadata.symbol || "UNKNOWN",
-                    balance: (Number(token.tokenBalance) / 10 ** (metadata.decimals || 18)).toFixed(4), // Convert to human-readable format
-                };
+                try {
+                    console.log("Fetching metadata for token contract address:", token.contractAddress);
+                    const metadata = await alchemy.core.getTokenMetadata(token.contractAddress);
+
+                    const formattedBalance = (
+                        Number(token.tokenBalance) / 10 ** (metadata.decimals || 18)
+                    ).toFixed(4);
+                    console.log("Formatted token balance:", formattedBalance);
+
+                    return {
+                        tokenAddress: token.contractAddress,
+                        tokenSymbol: metadata.symbol || "UNKNOWN",
+                        balance: formattedBalance,
+                    };
+                } catch (error) {
+                    console.warn(
+                        `Skipping token due to error: ${token.contractAddress}`,
+                        error
+                    );
+                    // Skip this token by returning null
+                    return null;
+                }
             })
         );
 
-        const filteredTokenBalances = tokenBalances.filter(
-            (token) => Number(token.balance) > 0
-        );
+        // Step 4: Filter out null values and tokens with balance <= 0
+        console.log("Filtering token balances...");
+        const filteredTokenBalances = tokenBalances
+            .filter((token) => token !== null && Number(token!.balance) > 0) as {
+            tokenAddress: string;
+            tokenSymbol: string;
+            balance: string;
+        }[];
+        console.log("Filtered token balances:", filteredTokenBalances);
+
+        // Step 5: Return the result
+        console.log("Final result - Native Balance and Token Balances:");
+        console.log({ nativeBalance, tokenBalances: filteredTokenBalances });
 
         return {
             nativeBalance,
             tokenBalances: filteredTokenBalances,
         };
-    }
-    catch (error) {
+    } catch (error) {
         console.error("Error fetching wallet balance:", error);
         throw new Error("Failed to fetch wallet balance.");
     }
+};
 
-}
+

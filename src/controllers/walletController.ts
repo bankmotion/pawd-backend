@@ -26,7 +26,7 @@ export const fetchSeedWalletData = async (req: Request, res: Response): Promise<
 export const fetchWalletData = async (req: Request, res: Response): Promise<void> => {
   try {
     const { address} = req.body;
-
+    console.log(address,'address')
     if (!address) {
       res.status(400).json({ error: 'Address is required.' });
       return;
