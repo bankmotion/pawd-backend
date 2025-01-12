@@ -1,5 +1,5 @@
 import { isAddress } from '@ethersproject/address';
-import { fetchWalletBalance, fetchWalletEthBalance, fetchWalletTxs, getRelatedWallets, calculateProfitability, categorizeEntity } from "../utils/alchemyApi";
+import { fetchWalletBalance, fetchWalletEthBalance, fetchWalletTxs } from "../utils/alchemyApi";
 
 // Define a type for the node objects
 interface Node {
@@ -15,8 +15,7 @@ interface JsonOutput {
 }
 
 // Simulate fetching data from a blockchain or external API
-export const getSeedWalletData = async (seedWalletAddress: string): Promise<{ relatedWalletsWithProfitability: any[] | null; jsonOutput: JsonOutput }> => {
-    // export const getSeedWalletData = async (seedWalletAddress: string) => {
+export const getSeedWalletData = async (seedWalletAddress: string): Promise<{ walletTxs: any[] | null; jsonOutput: JsonOutput }> => {
     try {
         // Example API call to fetch wallet data
         const result = await startCrawler(seedWalletAddress);
@@ -39,23 +38,17 @@ export const getWalletData = async (address: string) => {
     }
 };
 
-const startCrawler = async (seedWalletAddress: string): Promise<{ relatedWalletsWithProfitability: any[] | null; jsonOutput: JsonOutput }> => {
+const startCrawler = async (seedWalletAddress: string): Promise<{ walletTxs: any[] | null; jsonOutput: JsonOutput }> => {
 
     const mainWallet = seedWalletAddress;
 
     // Fetch wallet transactions
-    const relatedWallets = await getRelatedWallets(mainWallet);
+    const walletTxs = await fetchWalletTxs(mainWallet);
 
-    console.log(relatedWallets, "walletTxs")
+    // Extract the "from" wallet addresses
+    const fromAddresses = walletTxs?.map((tx: any) => tx.from).filter((address, index, self) => self.indexOf(address) === index);
 
-    const relatedWalletsWithProfitability = await Promise.all(
-        relatedWallets.map(async (wallet) => ({
-            wallet,
-            profitability: await calculateProfitability(wallet),
-        }))
-    );
-
-    const categorizedWallets = await filterWalletCategories(relatedWalletsWithProfitability);
+    console.log(fromAddresses!.length, "To Wallet Addresses");
 
     const mainWalletETHBalance = await fetchETHBalance(mainWallet);
 
@@ -66,13 +59,13 @@ const startCrawler = async (seedWalletAddress: string): Promise<{ relatedWallets
         nodes: []
     };
 
-    if (relatedWallets) {
-        await fetchBalancesAndUpdateNodes(relatedWallets, jsonOutput);
+    if (fromAddresses) {
+        await fetchBalancesAndUpdateNodes(fromAddresses, jsonOutput);
     }
 
-    console.log(jsonOutput, "jsonOutput", relatedWalletsWithProfitability, "relatedWalletsWithProfitability");
+    console.log(jsonOutput, "jsonOutput");
 
-    return { relatedWalletsWithProfitability, jsonOutput };
+    return { walletTxs, jsonOutput };
 
 };
 
@@ -107,16 +100,6 @@ const fetchETHBalance = async (walletAddress: string): Promise<number> => {
         console.error("Error fetching balance:", error);
         return 0;
     }
-}
-
-
-const filterWalletCategories = async (relatedWalletsWithProfitability: any[]): Promise<any[]> => {
-    return Promise.all(
-        relatedWalletsWithProfitability.map(async (wallet) => ({
-            wallet,
-            category: await categorizeEntity(wallet),
-        }))
-    );
 }
 
 
