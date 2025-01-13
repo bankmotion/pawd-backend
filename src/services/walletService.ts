@@ -26,7 +26,7 @@ interface JsonOutput {
 export const getSeedWalletData = async (
   seedWalletAddress: string
 ): Promise<{
-  relatedWalletsWithProfitability: any[] | null;
+  categorizedWallets: any[] | null;
   jsonOutput: JsonOutput;
 }> => {
   // export const getSeedWalletData = async (seedWalletAddress: string) => {
@@ -55,33 +55,36 @@ export const getWalletData = async (address: string) => {
 const startCrawler = async (
   seedWalletAddress: string
 ): Promise<{
-  relatedWalletsWithProfitability: any[] | null;
+  categorizedWallets:
+    | {
+        address: string;
+        profitability: number;
+        txs: string[];
+        category: string;
+      }[]
+    | null;
   jsonOutput: JsonOutput;
 }> => {
-  const mainWallet = seedWalletAddress;
+  console.log(`Starting crawler for seed wallet: ${seedWalletAddress}`);
 
   // Fetch wallet transactions
-  const relatedWallets = await getRelatedWallets(mainWallet);
-
+  const relatedWallets = await getRelatedWallets(seedWalletAddress);
   console.log(relatedWallets, "relatedWallet");
 
-  const relatedWalletsWithProfitability = [];
+  const relatedWalletsWithProfitability: {
+    address: string;
+    txs: string[];
+    profitability: number;
+  }[] = [];
   for (const wallet of relatedWallets) {
-    const walletWithProfi = await calculateProfitability(wallet);
+    const walletWithProfi = await calculateProfitability(wallet.address);
     relatedWalletsWithProfitability.push({
-      wallet,
+      ...wallet,
       profitability: walletWithProfi,
     });
   }
 
   console.log(`related wallet with profitability ended`.bgGreen);
-
-  // const relatedWalletsWithProfitability = await Promise.all(
-  //   relatedWallets.map(async (wallet) => ({
-  //     wallet,
-  //     profitability: await calculateProfitability(wallet),
-  //   }))
-  // );
 
   const categorizedWallets = await filterWalletCategories(
     relatedWalletsWithProfitability
@@ -89,17 +92,20 @@ const startCrawler = async (
 
   console.log("category wallets".bgGreen, categorizedWallets);
 
-  const mainWalletETHBalance = await fetchETHBalance(mainWallet);
+  const mainWalletETHBalance = await fetchETHBalance(seedWalletAddress);
 
   // Prepare the data structure to export as JSON
   const jsonOutput: JsonOutput = {
-    address: mainWallet,
+    address: seedWalletAddress,
     balance: mainWalletETHBalance,
     nodes: [],
   };
 
   if (relatedWallets) {
-    await fetchBalancesAndUpdateNodes(relatedWallets, jsonOutput);
+    await fetchBalancesAndUpdateNodes(
+      relatedWallets.map((wallet) => wallet.address),
+      jsonOutput
+    );
   }
 
   console.log(
@@ -109,7 +115,7 @@ const startCrawler = async (
     "relatedWalletsWithProfitability"
   );
 
-  return { relatedWalletsWithProfitability, jsonOutput };
+  return { categorizedWallets, jsonOutput };
 };
 
 const fetchBalancesAndUpdateNodes = async (
@@ -157,12 +163,23 @@ const fetchETHBalance = async (walletAddress: string): Promise<number> => {
 };
 
 const filterWalletCategories = async (
-  relatedWalletsWithProfitability: { wallet: string; profitability: number }[]
-): Promise<any[]> => {
+  relatedWalletsWithProfitability: {
+    address: string;
+    profitability: number;
+    txs: string[];
+  }[]
+): Promise<
+  {
+    address: string;
+    profitability: number;
+    txs: string[];
+    category: string;
+  }[]
+> => {
   return Promise.all(
     relatedWalletsWithProfitability.map(async (wallet) => ({
       ...wallet,
-      category: await categorizeEntity(wallet.wallet),
+      category: await categorizeEntity(wallet.address),
     }))
   );
 };

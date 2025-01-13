@@ -237,13 +237,15 @@ export const fetchWalletBalance = async (
 
 export const getRelatedWallets = async (
   seedWallet: string
-): Promise<string[]> => {
+): Promise<{ address: string; txs: string[] }[]> => {
   try {
     console.log(
       `Fetching outgoing transactions for seed wallet: ${seedWallet}`
     );
+
     let outgoingTxs: AssetTransfersWithMetadataResponse | null = null;
     let retries = 0;
+
     while (!outgoingTxs && retries < Delay.MaxRetries) {
       try {
         outgoingTxs = await alchemy.core.getAssetTransfers({
@@ -274,6 +276,7 @@ export const getRelatedWallets = async (
 
     retries = 0;
     let incomingTxs: AssetTransfersWithMetadataResponse | null = null;
+
     while (!incomingTxs && retries < Delay.MaxRetries) {
       try {
         incomingTxs = await alchemy.core.getAssetTransfers({
@@ -299,28 +302,35 @@ export const getRelatedWallets = async (
     );
 
     // Initialize a set to store unique related wallets
-    const relatedWallets = new Set<string>();
+    const walletTxMap: Record<string, Set<string>> = {};
 
-    // Process outgoing transactions
-    console.log("Processing outgoing transactions...");
+    // Helper function to add transactions to the map
+    const addToMap = (address: string, tx: string) => {
+      if (!walletTxMap[address]) {
+        walletTxMap[address] = new Set();
+      }
+      walletTxMap[address].add(tx);
+    };
+
+    // process outgoing transaction
     outgoingTxs.transfers.forEach((tx) => {
       if (tx.to && tx.to.toLowerCase() !== seedWallet.toLowerCase()) {
-        console.log(`Adding related wallet from outgoing tx: ${tx.to}`);
-        relatedWallets.add(tx.to);
+        addToMap(tx.to, tx.hash);
       }
     });
 
-    // Process incoming transactions
-    console.log("Processing incoming transactions...");
     incomingTxs.transfers.forEach((tx) => {
       if (tx.from && tx.from.toLowerCase() !== seedWallet.toLowerCase()) {
-        console.log(`Adding related wallet from incoming tx: ${tx.from}`);
-        relatedWallets.add(tx.from);
+        addToMap(tx.from, tx.hash);
       }
     });
 
-    // Convert the set to an array
-    const relatedWalletArray = Array.from(relatedWallets);
+    const relatedWalletArray = Object.entries(walletTxMap).map(
+      ([address, txSet]) => ({
+        address,
+        txs: Array.from(txSet),
+      })
+    );
 
     return relatedWalletArray;
   } catch (err) {
