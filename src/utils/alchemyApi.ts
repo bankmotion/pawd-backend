@@ -7,7 +7,7 @@ import {
 } from "alchemy-sdk";
 import { createAlchemyWeb3 } from "@alch/alchemy-web3";
 import BN from "bn.js";
-import { APIKey, Delay } from "../config/config";
+import { APIKey, BlockChain, Delay } from "../config/config";
 import { delay } from "./utils";
 import "colors";
 
@@ -254,6 +254,7 @@ export const getRelatedWallets = async (
           category: ["erc20", "external"] as AssetTransfersCategory[],
           withMetadata: true,
           order: "desc" as SortingOrder,
+          maxCount: BlockChain.MaxTXCount,
         });
       } catch (err) {
         retries++;
@@ -285,6 +286,7 @@ export const getRelatedWallets = async (
           category: ["erc20", "external"] as AssetTransfersCategory[],
           withMetadata: true,
           order: "desc" as SortingOrder,
+          maxCount: BlockChain.MaxTXCount,
         });
       } catch (err) {
         retries++;
@@ -360,7 +362,7 @@ export const calculateProfitability = async (
           category: ["erc20", "external"] as AssetTransfersCategory[],
           withMetadata: true,
           order: "desc" as SortingOrder,
-          maxCount: 50,
+          maxCount: BlockChain.MaxTXCount,
         });
       } catch (err) {
         retries++;
@@ -388,7 +390,7 @@ export const calculateProfitability = async (
           category: ["erc20", "external"] as AssetTransfersCategory[],
           withMetadata: true,
           order: "desc" as SortingOrder,
-          maxCount: 50,
+          maxCount: BlockChain.MaxTXCount,
         });
       } catch (err) {
         retries++;

@@ -15,6 +15,7 @@ export const APIKey = {
 
 export const BlockChain = {
   BlockTime: 10,
+  MaxTXCount: 50,
 };
 
 export const Delay = {
