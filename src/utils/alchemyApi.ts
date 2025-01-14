@@ -2,6 +2,7 @@ import {
   Alchemy,
   AssetTransfersCategory,
   AssetTransfersWithMetadataResponse,
+  AssetTransfersWithMetadataResult,
   Network,
   SortingOrder,
 } from "alchemy-sdk";
@@ -237,7 +238,7 @@ export const fetchWalletBalance = async (
 
 export const getRelatedWallets = async (
   seedWallet: string
-): Promise<{ address: string; txs: string[] }[]> => {
+): Promise<{ address: string; txs: AssetTransfersWithMetadataResult[] }[]> => {
   try {
     console.log(
       `Fetching outgoing transactions for seed wallet: ${seedWallet}`
@@ -304,10 +305,16 @@ export const getRelatedWallets = async (
     );
 
     // Initialize a set to store unique related wallets
-    const walletTxMap: Record<string, Set<string>> = {};
+    const walletTxMap: Record<
+      string,
+      Set<AssetTransfersWithMetadataResult>
+    > = {};
 
     // Helper function to add transactions to the map
-    const addToMap = (address: string, tx: string) => {
+    const addToMap = (
+      address: string,
+      tx: AssetTransfersWithMetadataResult
+    ) => {
       if (!walletTxMap[address]) {
         walletTxMap[address] = new Set();
       }
@@ -316,14 +323,22 @@ export const getRelatedWallets = async (
 
     // process outgoing transaction
     outgoingTxs.transfers.forEach((tx) => {
-      if (tx.to && tx.to.toLowerCase() !== seedWallet.toLowerCase()) {
-        addToMap(tx.to, tx.hash);
+      if (
+        tx.to &&
+        tx.to.toLowerCase() !== seedWallet.toLowerCase() &&
+        (tx.asset === "ETH" || tx.asset === "WETH")
+      ) {
+        addToMap(tx.to, tx);
       }
     });
 
     incomingTxs.transfers.forEach((tx) => {
-      if (tx.from && tx.from.toLowerCase() !== seedWallet.toLowerCase()) {
-        addToMap(tx.from, tx.hash);
+      if (
+        tx.from &&
+        tx.from.toLowerCase() !== seedWallet.toLowerCase() &&
+        (tx.asset === "ETH" || tx.asset === "WETH")
+      ) {
+        addToMap(tx.from, tx);
       }
     });
 
@@ -417,8 +432,6 @@ export const calculateProfitability = async (
     // Iterate through the token transfers and calculate the total received and spent
     tokenTransfers.forEach((tx) => {
       const value = tx.value ? tx.value : 0;
-      if (tx.asset !== "ETH" && tx.asset !== "WETH") return;
-
       if (tx.to?.toLowerCase() === address.toLowerCase()) {
         totalReceived += value; // Received tokens
       }

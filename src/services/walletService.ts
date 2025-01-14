@@ -8,6 +8,7 @@ import {
   categorizeEntity,
 } from "../utils/alchemyApi";
 import "colors";
+import { AssetTransfersWithMetadataResult } from "alchemy-sdk";
 
 // Define a type for the node objects
 interface Node {
@@ -59,7 +60,7 @@ const startCrawler = async (
     | {
         address: string;
         profitability: number;
-        txs: string[];
+        txs: AssetTransfersWithMetadataResult[];
         category: string;
       }[]
     | null;
@@ -73,7 +74,7 @@ const startCrawler = async (
 
   const relatedWalletsWithProfitability: {
     address: string;
-    txs: string[];
+    txs: AssetTransfersWithMetadataResult[];
     profitability: number;
   }[] = [];
   for (const wallet of relatedWallets) {
@@ -166,13 +167,13 @@ const filterWalletCategories = async (
   relatedWalletsWithProfitability: {
     address: string;
     profitability: number;
-    txs: string[];
+    txs: AssetTransfersWithMetadataResult[];
   }[]
 ): Promise<
   {
     address: string;
     profitability: number;
-    txs: string[];
+    txs: AssetTransfersWithMetadataResult[];
     category: string;
   }[]
 > => {
