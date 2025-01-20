@@ -1,3 +1,6 @@
+import { TypeTransferTx } from "../interface/TransferTxInt";
+import TransferTx from "../models/TransferTxModel";
+
 export const delay = (ms: number) => {
   return new Promise((resolve) => setTimeout(resolve, ms * 1000));
 };
@@ -29,3 +32,23 @@ export const getTokenPriceByPriceBunch = (
 
   return price;
 };
+
+export const getRelatedWallet = (targetAddr: string, txs: TypeTransferTx[]) => {
+  const relatedWallets = new Set<string>();
+
+  for (const tx of txs) {
+    if (tx.from === targetAddr) {
+      relatedWallets.add(tx.to);
+    } else if (tx.to === targetAddr) {
+      relatedWallets.add(tx.from);
+    }
+  }
+
+  return relatedWallets;
+};
+
+export const getProfitabilityFromTxs = (
+  txs: TypeTransferTx[],
+  duration: number,
+  address: string
+) => {};

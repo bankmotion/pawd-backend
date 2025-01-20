@@ -19,6 +19,8 @@ export const BlockChain = {
   BlockTime: 10,
   MaxTXCount: 50,
   TxResultDuration: 30 * 24 * 3600,
+  MonthDuration: 30 * 24 * 3600,
+  WeekDuration: 7 * 24 * 3600,
 };
 
 export const Delay = {

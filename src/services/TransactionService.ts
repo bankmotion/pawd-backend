@@ -1,8 +1,16 @@
-import { Addresses } from "../config/config";
+import { Op } from "sequelize";
+import { Addresses, BlockChain } from "../config/config";
 import { TypeTransferTx } from "../interface/TransferTxInt";
 import db from "../models";
 import { getTokenPriceByPriceBunch } from "../utils/utils";
 import { createTokenInfo, getTokenInfo } from "./TokenService";
+import TransferTx from "../models/TransferTxModel";
+import Token from "../models/TokenModel";
+
+TransferTx.belongsTo(Token, {
+  foreignKey: "tokenId",
+  as: "tokenData",
+});
 
 export const createNewTransferTxs = async (
   txs: TypeTransferTx[],
@@ -44,5 +52,31 @@ export const getTransferTx = async (tx: TypeTransferTx) => {
     return data;
   } catch (err) {
     console.log(`TrasactionService isTransferTx() ERROR ${err}`.red);
+  }
+};
+
+export const getTxsByAddress = async (address: string) => {
+  try {
+    const curTime = Math.floor(new Date().getTime() / 1000);
+    const data = await db.TransferTx.findAll({
+      where: {
+        [Op.and]: [
+          {
+            blockTimestamp: {
+              [Op.gte]: curTime - BlockChain.TxResultDuration,
+            },
+          },
+          {
+            [Op.or]: [{ from: address }, { to: address }],
+          },
+        ],
+      },
+      include: { model: Token, as: "tokenData" },
+    });
+
+    const result = data.map((tx) => tx.toJSON()) as TypeTransferTx[];
+    return result;
+  } catch (err) {
+    console.log(`TransactionService~getTxsByAddress Error ${err}`.red);
   }
 };

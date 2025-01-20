@@ -1,12 +1,12 @@
-import { BlockChain } from "./config/config";
-import { createNewTransferTxs } from "./services/TransactionService";
-import { getWalletTxsByAlchemy } from "./utils/AlchemyApi";
-import { fetchTokenPrice } from "./utils/CoinGeckoApi";
-import { deleteRecreateTable, syncTable } from "./utils/db";
+import { BlockChain } from "../config/config";
+import { createNewTransferTxs } from "../services/TransactionService";
+import { getWalletTxsByAlchemy } from "../utils/AlchemyApi";
+import { fetchTokenPrice } from "../utils/CoinGeckoApi";
+import { deleteRecreateTable } from "../utils/db";
 
-const startCrawler = async (address: string) => {
+export const startCrawler = async (address: string) => {
   try {
-    await deleteRecreateTable();
+    // await deleteRecreateTable();
 
     const txs = await getWalletTxsByAlchemy(address);
 
@@ -40,8 +40,3 @@ const startCrawler = async (address: string) => {
     console.log(`startCrawler Error: ${err}`.red);
   }
 };
-
-// syncTable();
-
-startCrawler("0x00a8ac72bd166067b629f6111ddfde7570ce482a");
-// startCrawler("0xfd132f736c825308090cdffb0bc6f502b4a471ca");
