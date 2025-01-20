@@ -4,7 +4,7 @@ export interface TypeTransferTx {
   id?: number;
   from: string;
   to: string;
-  value: number;
+  value: number | string;
   hash: string;
   blockTimestamp: number;
   blockNum: number;

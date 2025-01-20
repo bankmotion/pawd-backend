@@ -33,7 +33,10 @@ export const getTokenPriceByPriceBunch = (
   return price;
 };
 
-export const getRelatedWallet = (targetAddr: string, txs: TypeTransferTx[]) => {
+export const getRelatedWallet = async (
+  targetAddr: string,
+  txs: TypeTransferTx[]
+) => {
   const relatedWallets = new Set<string>();
 
   for (const tx of txs) {
@@ -51,4 +54,36 @@ export const getProfitabilityFromTxs = (
   txs: TypeTransferTx[],
   duration: number,
   address: string
-) => {};
+) => {
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  console.log("Current Timestamp:", currentTimestamp);
+
+  // Filter transactions that occurred within the duration
+  const filteredTxs = txs.filter(
+    (tx) => currentTimestamp - tx.blockTimestamp <= duration
+  );
+
+  console.log("Filtered Transactions:", filteredTxs);
+
+  // Calculate profitability
+  let totalProfitability = 0;
+
+  filteredTxs.forEach((tx) => {
+    const value =
+      typeof tx.value === "string" ? Number(parseFloat(tx.value)) : tx.value;
+    console.log("Transaction Value:", value);
+
+    if (tx.from.toLowerCase() === address.toLowerCase()) {
+      // Outgoing transaction (-)
+      totalProfitability -= value;
+      console.log("Total Profitability after deduction:", totalProfitability);
+    } else if (tx.to.toLowerCase() === address.toLowerCase()) {
+      // Incoming transaction (+)
+      totalProfitability += value;
+      console.log("Total Profitability after addition:", totalProfitability);
+    }
+  });
+
+  console.log("Final Total Profitability:", totalProfitability);
+  return totalProfitability;
+};
